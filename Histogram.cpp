@@ -1,6 +1,5 @@
 #include "Histogram.hpp"
-#include "libsvgc++.hpp"
-#include <algorithm>
+
 
 Histogram::Histogram() {
     this->input_info();
@@ -23,7 +22,7 @@ void Histogram::input_info() {
 }
 
 void Histogram::check_validation() {
-    if (scale_step < LOW_BOUND || scale_step > HIGH_BOUND)
+    if (scale_step < STEP_LOW_BOUND || scale_step > STEP_HIGH_BOUND)
         state = Error;
 }
 
@@ -58,12 +57,69 @@ void Histogram::eval_bins() {
         }
 }
 
+std::string Histogram::get_colour() {
+    static std::deque<std::string> colours_queue{colours.begin(), colours.end()};
+    std::string picked_colour = colours_queue.front();
+    colours_queue.pop_front();
+    colours_queue.push_back(picked_colour);
+    return picked_colour;
+}
+
 void Histogram::print_histogram() {
     ulong max_count =
         *std::max_element(bins.begin(),
                            bins.end());
+    
+    svg::begin(X + MAX_SVG_WIDTH + EXTRA_X, 
+               Y + (bin_count + 2) * ROW_HEIGHT);
 
-    svg::begin(X + MAX_SVG_WIDTH, Y + (bin_count + 2) * ROW_HEIGHT);
+    for (ulong i = 0; i < bins.size(); i++) {
+        ulong text_alignment;
+        if (bins[i] < 10) text_alignment = MAX_CAPTION_WIDTH - LETTER_LENGTH;
+        else if (bins[i] < 100) text_alignment = MAX_CAPTION_WIDTH - 2 * LETTER_LENGTH;
+        else text_alignment = MAX_CAPTION_WIDTH - 3 * LETTER_LENGTH;
+
+        svg::text(X + text_alignment - CAPTION_SHIFT_X, 
+                  Y + i * ROW_HEIGHT + CAPTION_SHIFT_Y, 
+                  std::to_string(bins[i]), "black", "black");
+
+        unit_t row_lenght;
+        if (max_count > MAX_ROW_UNITS) row_lenght = (static_cast<double>(bins[i]) / max_count) * ROW_UNIT;
+        else row_lenght = bins[i] * ROW_UNIT;
+
+        svg::rect(X + MAX_CAPTION_WIDTH, 
+                  Y + i * ROW_HEIGHT, 
+                  row_lenght, ROW_HEIGHT, 
+                  get_colour().c_str(), "black");
+    }
+
+    unit_t steps_count;
+    if (max_count > MAX_ROW_UNITS) 
+        steps_count = std::ceil(static_cast<double>(MAX_ROW_UNITS) / scale_step);
+    else 
+        steps_count = std::ceil(static_cast<double>(max_count) / scale_step);
+
+    svg::rect(X + MAX_CAPTION_WIDTH,
+              Y + ROW_HEIGHT * bins.size(),
+              steps_count * scale_step * ROW_UNIT + 1, 1);
+    
+    for (ulong i = 0; i <= steps_count; i++)
+        svg::rect(X + MAX_CAPTION_WIDTH + scale_step * ROW_UNIT * i, 
+                  Y + ROW_HEIGHT * bins.size(),
+                  1, SCALE_SHIFT_Y, "black", "black");
+
+    num_t point;
+    if (max_count > MAX_ROW_UNITS) point = std::floor(static_cast<double>(max_count) / MAX_ROW_UNITS);
+    else point = scale_step;
+    svg::text(X + MAX_CAPTION_WIDTH - SCALE_CAPTION_SHIFT_X, 
+              Y + ROW_HEIGHT * bins.size() + SCALE_SHIFT_Y + SCALE_CAPTION_SHIFT_Y, "0");
+    svg::text(X + MAX_CAPTION_WIDTH - SCALE_CAPTION_SHIFT_X + scale_step * ROW_UNIT,
+              Y + ROW_HEIGHT * bins.size() + SCALE_SHIFT_Y + SCALE_CAPTION_SHIFT_Y, 
+              std::to_string(static_cast<ulong>(point)));
+    svg::text(X + MAX_CAPTION_WIDTH - SCALE_CAPTION_SHIFT_X + scale_step * steps_count,
+              Y + ROW_HEIGHT * bins.size() + SCALE_SHIFT_Y + SCALE_CAPTION_SHIFT_Y,
+              std::to_string(static_cast<ulong>(point * steps_count * scale_step)));
+    //svg::text()
 
     svg::end();
 

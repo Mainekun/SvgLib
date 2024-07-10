@@ -81,12 +81,12 @@ void svg::end() {
     fcout("</svg>");
 }
 
-void svg::text(unit_t x, unit_t y, std::string text, std::string colour = "black", std::string stroke = "black") {
+void svg::text(unit_t x, unit_t y, std::string text, std::string colour, std::string stroke) {
     fcout("\t<text x='%f' y='%f' fill='%s' stroke='%s'>%s</text>\n", 
           x, y, colour.c_str(), stroke.c_str(), text.c_str());
 }
 
-void svg::rect(unit_t x, unit_t y, unit_t width, unit_t height, std::string fill = "black", std::string stroke = "black") {
+void svg::rect(unit_t x, unit_t y, unit_t width, unit_t height, std::string fill, std::string stroke) {
     fcout("\t<rect x='%f' y='%f' width='%f' height='%f' fill='%s' stroke='%s' />\n", 
           x, y, width, height, fill.c_str(), stroke.c_str());
 }
